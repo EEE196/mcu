@@ -89,7 +89,7 @@ int main(void)
   MX_TIM16_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  if (HAL_TIM_Base_Start_IT(&htim3) != HAL_OK)
+  if (HAL_TIM_Base_Start_IT(&htim16) != HAL_OK)
     {
       /* Starting Error */
       Error_Handler();
