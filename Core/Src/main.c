@@ -18,8 +18,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "app_fatfs.h"
 #include "i2c.h"
 #include "usart.h"
+#include "spi.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -90,6 +92,8 @@ int main(void)
   MX_TIM16_Init();
   MX_LPUART1_UART_Init();
   MX_I2C1_Init();
+  MX_SPI1_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
   if (HAL_TIM_Base_Start_IT(&htim16) != HAL_OK)
     {
