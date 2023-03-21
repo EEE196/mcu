@@ -6,6 +6,7 @@
  */
 
 #include "so2.h"
+
 #include "usart.h"
 
 
@@ -17,7 +18,7 @@ void HAL_UART_TXCpltCallback(UART_HandleTypeDef *huart)
 {
 	HAL_UART_Receive_IT(&hlpuart1, Rx_data, 13);
 }
-int SO2_GET_DATA(void)
+void SO2_GET_DATA(void)
 {
 	HAL_UART_Transmit_IT(&hlpuart1, Tx_data, 9);
 
