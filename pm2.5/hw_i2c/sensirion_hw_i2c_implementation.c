@@ -64,6 +64,7 @@ int16_t sensirion_i2c_select_bus(uint8_t bus_idx) {
  */
 void sensirion_i2c_init(void) {
     // IMPLEMENT
+	 MX_I2C1_Init();
 }
 
 /**
