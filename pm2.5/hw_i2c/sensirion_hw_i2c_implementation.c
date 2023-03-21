@@ -33,6 +33,8 @@
 #include "sensirion_common.h"
 #include "sensirion_i2c.h"
 
+#include "stm32wlxx.h"
+#include "i2c.h"
 /*
  * INSTRUCTIONS
  * ============
