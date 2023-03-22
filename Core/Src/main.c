@@ -176,8 +176,8 @@ int fputc(int ch, FILE *f)
 #endif /* __GNUC__ */
 {
   /* Place your implementation of fputc here */
-  /* e.g. write a character to the UART3 and Loop until the end of transmission */
-  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  /* e.g. write a character to the UART2 and Loop until the end of transmission */
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
   return ch;
 }
 /* USER CODE END 4 */
