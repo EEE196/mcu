@@ -16,7 +16,7 @@ uint8_t Tx_data[9] = { 0xFF, 0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x78 };
 
 void HAL_UART_TXCpltCallback(UART_HandleTypeDef *huart)
 {
-	HAL_UART_Receive_IT(&hlpuart1, Rx_data, 13);
+	if(huart == &hlpuart1) HAL_UART_Receive_IT(&hlpuart1, Rx_data, 13);
 }
 void SO2_GET_DATA(void)
 {
