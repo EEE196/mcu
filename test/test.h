@@ -9,6 +9,7 @@
 #define TEST_H_
 
 void test_sd( void );
+void test_pm( void );
 
 
 #endif /* TEST_H_ */
