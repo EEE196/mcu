@@ -21,6 +21,8 @@ void SO2_GET_DATA(void)
 void SO2_UART_CallBack(void)
 {
 #if (DEBUG == 1)
-	printf("%s\n", Rx_data);
+	for(int i=0; i<13; i++) {
+		     printf("%d/n", Rx_data[i]);
+	}
 #endif
 }
