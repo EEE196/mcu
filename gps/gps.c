@@ -35,10 +35,6 @@
 #include <usart.h>
 #include "gps.h"
 
-#if (GPS_DEBUG == 1)
-#include <usbd_cdc_if.h>
-#endif
-
 uint8_t rx_data = 0;
 uint8_t rx_buffer[GPSBUFSIZE];
 uint8_t rx_index = 0;
@@ -47,8 +43,9 @@ GPS_t GPS;
 
 #if (GPS_DEBUG == 1)
 void GPS_print(char *data){
-	char buf[GPSBUFSIZE] = {0,};
-	printf("%s\n", buf);
+	for(int i=0; i<GPSBUFSIZE; i++) {
+	     printf("%d/n", data[i]);
+	  }
 }
 #endif
 
