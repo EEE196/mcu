@@ -21,7 +21,8 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
-
+#include "../../gps/gps.h"
+#include "../../so2/so2.h"
 /* USER CODE END 0 */
 
 UART_HandleTypeDef hlpuart1;
@@ -350,5 +351,13 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == GPS_USART) GPS_UART_CallBack();
+	if(huart == SO2_USART) SO2_UART_CallBack();
+}
+void HAL_UART_TXCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == SO2_USART) HAL_UART_Receive_IT(&hlpuart1, Rx_data, 13);
+}
 /* USER CODE END 1 */
