@@ -12,6 +12,7 @@ void test_sd( void );
 void test_pm( void );
 void test_co( void );
 void test_gps( void );
+void test_so( void );
 
 
 #endif /* TEST_H_ */

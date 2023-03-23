@@ -210,3 +210,7 @@ void test_co(void) {
 void test_gps(void) {
 	GPS_Init();
 }
+
+void test_so(void) {
+	SO2_GET_DATA();
+}
