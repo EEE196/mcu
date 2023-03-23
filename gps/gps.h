@@ -5,7 +5,7 @@
  *      Author: Bulanov Konstantin
  */
 
-#define GPS_DEBUG	0
+#define GPS_DEBUG	1
 #define	GPS_USART	&huart1
 #define GPSBUFSIZE  128       // GPS buffer size
 

@@ -48,8 +48,7 @@ GPS_t GPS;
 #if (GPS_DEBUG == 1)
 void GPS_print(char *data){
 	char buf[GPSBUFSIZE] = {0,};
-	sprintf(buf, "%s\n", data);
-	CDC_Transmit_FS((unsigned char *) buf, (uint16_t) strlen(buf));
+	printf("%s\n", buf);
 }
 #endif
 

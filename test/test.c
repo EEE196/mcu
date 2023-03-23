@@ -4,6 +4,7 @@
 #include "app_fatfs.h"
 #include "../pm2.5/sps30.h"
 #include "../co2/scd30.h"
+#include "../gps/gps.h"
 
 void test_sd( void )
 {
@@ -204,4 +205,8 @@ void test_co(void) {
     }
 
     scd30_stop_periodic_measurement();
+}
+
+void test_gps(void) {
+	GPS_Init();
 }
