@@ -59,14 +59,20 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LED1_Pin GPIO_PIN_15
 #define LED1_GPIO_Port GPIOB
+#define LoRa_DIO0_Pin GPIO_PIN_4
+#define LoRa_DIO0_GPIO_Port GPIOB
 #define LED2_Pin GPIO_PIN_9
 #define LED2_GPIO_Port GPIOB
 #define FE_CTRL3_Pin GPIO_PIN_3
 #define FE_CTRL3_GPIO_Port GPIOC
 #define B1_Pin GPIO_PIN_0
 #define B1_GPIO_Port GPIOA
+#define LoRa_RST_Pin GPIO_PIN_2
+#define LoRa_RST_GPIO_Port GPIOB
 #define FE_CTRL2_Pin GPIO_PIN_5
 #define FE_CTRL2_GPIO_Port GPIOC
+#define LoRa_CS_Pin GPIO_PIN_1
+#define LoRa_CS_GPIO_Port GPIOB
 #define FE_CTRL1_Pin GPIO_PIN_4
 #define FE_CTRL1_GPIO_Port GPIOC
 #define B3_Pin GPIO_PIN_6
