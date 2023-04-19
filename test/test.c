@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
+#include <usart.h>
 
 #include "app_fatfs.h"
 #include "../pm2.5/sps30.h"
 #include "../co2/scd30.h"
 #include "../gps/gps.h"
+#include "../lora/lora.h"
 
 void test_sd( void )
 {
@@ -214,3 +217,33 @@ void test_gps(void) {
 void test_so(void) {
 	SO2_GET_DATA();
 }
+
+void test_lora(void) {
+	LoRa myLoRa;
+	myLoRa = newLoRa();
+	myLoRa.CS_port         = LoRa_CS_GPIO_Port;
+	myLoRa.CS_pin          = LoRa_CS_Pin;
+	myLoRa.reset_port      = LoRa_RST_GPIO_Port;
+	myLoRa.reset_pin       = LoRa_RST_Pin;
+	myLoRa.DIO0_port       = LoRa_DIO0_GPIO_Port;
+	myLoRa.DIO0_pin        = LoRa_DIO0_Pin;
+	myLoRa.hSPIx           = &hspi1;
+
+	myLoRa.frequency       = 868;
+
+	char   send_data[200];
+	uint16_t LoRa_status = LoRa_init(&myLoRa);
+	memset(send_data,NULL,200);
+
+	if (LoRa_status==LORA_OK){
+	  printf(send_data,sizeof(send_data),"\n\r LoRa is running... :) \n\r");
+	  LoRa_transmit(&myLoRa, (uint8_t*)send_data, 120, 100);
+	  HAL_UART_Transmit(&huart2, (uint8_t*)send_data, 200, 200);
+	}
+	else{
+	  printf(send_data,sizeof(send_data),"\n\r LoRa failed :( \n\r Error code: %d \n\r", LoRa_status);
+	  HAL_UART_Transmit(&huart2, (uint8_t*)send_data, 200, 200);
+	}
+
+}
+
