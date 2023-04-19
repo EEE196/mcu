@@ -7,6 +7,7 @@
 // -------------------------------------------------- //
 
 #include "main.h"
+#include <spi.h>
 
 #define TRANSMIT_TIMEOUT	2000
 #define RECEIVE_TIMEOUT		2000
