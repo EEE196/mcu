@@ -4,6 +4,9 @@
  *  Created on: Nov 15, 2019
  *      Author: Bulanov Konstantin
  */
+#include <stdio.h>
+#include <string.h>
+#include <usart.h>
 
 #define GPS_DEBUG	1
 #define	GPS_USART	&huart1
@@ -49,6 +52,11 @@ typedef struct{
 #if (GPS_DEBUG == 1)
 void GPS_print(char *data);
 #endif
+
+extern uint8_t rx_data;
+extern uint8_t rx_buffer[GPSBUFSIZE];
+extern uint8_t rx_index;
+extern GPS_t GPS;
 
 void GPS_Init();
 void GSP_USBPrint(char *data);

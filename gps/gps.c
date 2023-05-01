@@ -28,11 +28,6 @@
  * | along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * |---------------------------------------------------------------------------------
  */
-
-
-#include <stdio.h>
-#include <string.h>
-#include <usart.h>
 #include "gps.h"
 
 uint8_t rx_data = 0;
@@ -53,25 +48,6 @@ void GPS_Init()
 {
 	HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
 }
-
-
-void GPS_UART_CallBack(){
-	if (rx_data != '\n' && rx_index < sizeof(rx_buffer)) {
-		rx_buffer[rx_index++] = rx_data;
-	} else {
-
-		#if (GPS_DEBUG == 1)
-		GPS_print((char*)rx_buffer);
-		#endif
-
-		if(GPS_validate((char*) rx_buffer))
-			GPS_parse((char*) rx_buffer);
-		rx_index = 0;
-		memset(rx_buffer, 0, sizeof(rx_buffer));
-	}
-	HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
-}
-
 
 int GPS_validate(char *nmeastr){
     char check[3];
