@@ -304,13 +304,21 @@ void GPS_Task(void const * argument)
 	/* Infinite loop */
 	for(;;)
 	{
-		GPS_print((char*)rx_buffer);
-		if(GPS_validate((char*) rx_buffer))
-			GPS_parse((char*) rx_buffer);
-		rx_index = 0;
-		memset(rx_buffer, 0, sizeof(rx_buffer));
-		xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
-		vTaskSuspend( NULL );
+		if (rx_data != '\n' && rx_index < sizeof(rx_buffer)) {
+			rx_buffer[rx_index++] = rx_data;
+			HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
+			vTaskSuspend( NULL );
+		} else {
+			GPS_print((char*)rx_buffer);
+			if(GPS_validate((char*) rx_buffer))
+				GPS_parse((char*) rx_buffer);
+			rx_index = 0;
+			memset(rx_buffer, 0, sizeof(rx_buffer));
+			xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
+			vTaskSuspend( NULL );
+			HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
+			vTaskSuspend( NULL );
+		}
 	}
 	/* USER CODE END GPS_Task */
 }
@@ -346,12 +354,7 @@ void SO_Task(void const * argument)
 /* USER CODE BEGIN Application */
 
 void GPS_UART_CallBack(){
-	if (rx_data != '\n' && rx_index < sizeof(rx_buffer)) {
-		rx_buffer[rx_index++] = rx_data;
-		HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
-	} else {
-		vTaskResume( GPSHandle );
-	}
+	vTaskResume( GPSHandle );
 }
 void SO2_UART_CallBack(void)
 {
