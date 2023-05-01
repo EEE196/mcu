@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "../../pm2.5/sps30.h"
+#include "../../co2/scd30.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -219,10 +220,59 @@ void PM_Task(void const * argument)
 void CO_Task(void const * argument)
 {
 	/* USER CODE BEGIN CO_Task */
+	int16_t err;
+	uint16_t interval_in_seconds = 2;
+
+	struct Data {
+		float co2_ppm;
+		float temperature;
+		float relative_humidity;
+	} data;
+
+	void* pointer = &data;
+	xIPStackEvent_t toQueue = { 1, pointer };
+	/* Busy loop for initialization, because the main loop does not work without
+	 * a sensor.
+	 */
+	while (scd30_probe() != NO_ERROR) {
+		printf("SCD30 sensor probing failed\n");
+		sensirion_sleep_usec(1000000u);
+	}
+	printf("SCD30 sensor probing successful\n");
+
+	scd30_set_measurement_interval(interval_in_seconds);
+	sensirion_sleep_usec(20000u);
+	scd30_start_periodic_measurement(0);
 	/* Infinite loop */
 	for(;;)
 	{
-		osDelay(1);
+		uint16_t data_ready = 0;
+
+		/* Poll data_ready flag until data is available. Allow 20% more than
+		 * the measurement interval to account for clock imprecision of the
+		 * sensor.
+		 */
+		err = scd30_get_data_ready(&data_ready);
+		if (err != NO_ERROR) {
+			printf("Error reading data_ready flag: %i\n", err);
+		}
+
+		/* Measure co2, temperature and relative humidity and store into
+		 * variables.
+		 */
+		err =
+				scd30_read_measurement(&data.co2_ppm, &data.temperature, &data.relative_humidity);
+		if (err != NO_ERROR) {
+			printf("error reading measurement\n");
+
+		} else {
+			printf("measured co2 concentration: %0.2f ppm, "
+					"measured temperature: %0.2f degreeCelsius, "
+					"measured humidity: %0.2f %%RH\n",
+					data.co2_ppm, data.temperature, data.relative_humidity);
+			xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
+			vTaskSuspend( NULL );
+		}
 	}
 	/* USER CODE END CO_Task */
 }
