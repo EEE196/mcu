@@ -232,7 +232,7 @@ void CO_Task(void const * argument)
 	} data;
 
 	void* pointer = &data;
-	xIPStackEvent_t toQueue = { 1, pointer };
+	xIPStackEvent_t toQueue = { 2, pointer };
 	/* Busy loop for initialization, because the main loop does not work without
 	 * a sensor.
 	 */
