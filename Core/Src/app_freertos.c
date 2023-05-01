@@ -29,6 +29,8 @@
 #include "../../pm2.5/sps30.h"
 #include "../../co2/scd30.h"
 #include "../../gps/gps.h"
+#include "../../so2/so2.h"
+
 
 /* USER CODE END Includes */
 
@@ -51,7 +53,7 @@
 /* USER CODE BEGIN Variables */
 typedef struct IP_TASK_COMMANDS
 {
-	uint8_t from_Task; /*0 - GPS; 1 - PM; 2 - CO */
+	uint8_t from_Task; /*0 - GPS; 1 - PM; 2 - CO; 3 - SO */
 	void *pvData; /* Holds or points to any data associated with the event. */
 
 } xIPStackEvent_t;
@@ -61,6 +63,7 @@ QueueHandle_t xQueueCollate;
 osThreadId PMHandle;
 osThreadId COHandle;
 osThreadId GPSHandle;
+osThreadId SOHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -70,6 +73,7 @@ osThreadId GPSHandle;
 void PM_Task(void const * argument);
 void CO_Task(void const * argument);
 void GPS_Task(void const * argument);
+void SO_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -128,6 +132,10 @@ void MX_FREERTOS_Init(void) {
 	/* definition and creation of GPS */
 	osThreadDef(GPS, GPS_Task, osPriorityNormal, 0, 128);
 	GPSHandle = osThreadCreate(osThread(GPS), NULL);
+
+	/* definition and creation of SO */
+	osThreadDef(SO, SO_Task, osPriorityNormal, 0, 128);
+	SOHandle = osThreadCreate(osThread(SO), NULL);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -307,6 +315,33 @@ void GPS_Task(void const * argument)
 	/* USER CODE END GPS_Task */
 }
 
+/* USER CODE BEGIN Header_SO_Task */
+/**
+ * @brief Function implementing the SO thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_SO_Task */
+void SO_Task(void const * argument)
+{
+	/* USER CODE BEGIN SO_Task */
+	void* pointer = Rx_data;
+	xIPStackEvent_t toQueue = { 3, pointer };
+	SO2_GET_DATA();
+	vTaskSuspend( NULL );
+	/* Infinite loop */
+	for(;;)
+	{
+		for(int i=0; i<13; i++) {
+			printf("%d/n", Rx_data[i]);
+		}
+		xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
+		vTaskSuspend( NULL );
+		SO2_GET_DATA();
+	}
+	/* USER CODE END SO_Task */
+}
+
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
@@ -317,5 +352,9 @@ void GPS_UART_CallBack(){
 	} else {
 		vTaskResume( GPSHandle );
 	}
+}
+void SO2_UART_CallBack(void)
+{
+	vTaskResume( SOHandle );
 }
 /* USER CODE END Application */

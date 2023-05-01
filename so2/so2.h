@@ -9,6 +9,8 @@
 #define SO2_H_
 
 #include <stdint.h>
+#include "usart.h"
+#include "stdio.h"
 #define DEBUG 1
 #define SO2_USART &hlpuart1
 extern uint8_t Rx_data[13];
