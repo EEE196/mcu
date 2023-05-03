@@ -352,6 +352,7 @@ void SO_Task(void const * argument)
 		xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
 		vTaskSuspend( NULL );
 		SO2_GET_DATA();
+		vTaskSuspend( NULL );
 	}
   /* USER CODE END SO_Task */
 }
