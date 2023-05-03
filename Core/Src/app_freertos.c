@@ -345,17 +345,17 @@ void SO_Task(void const * argument)
 	/* USER CODE BEGIN SO_Task */
 	void* pointer = Rx_data;
 	xIPStackEvent_t toQueue = { 3, pointer };
-	SO2_GET_DATA();
-	vTaskSuspend( NULL );
+	const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 200 );
 	/* Infinite loop */
 	for(;;)
 	{
+		SO2_GET_DATA();
+		ulTaskNotifyTake( pdTRUE,
+				xMaxBlockTime );
 		for(int i=0; i<13; i++) {
 			printf("%d/n", Rx_data[i]);
 		}
 		xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
-		vTaskSuspend( NULL );
-		SO2_GET_DATA();
 		vTaskSuspend( NULL );
 	}
 	/* USER CODE END SO_Task */
@@ -390,6 +390,9 @@ void GPS_UART_CallBack(){
 }
 void SO2_UART_CallBack(void)
 {
-	vTaskResumeFromISR( SOHandle );
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	vTaskNotifyGiveFromISR( SOHandle,
+			&xHigherPriorityTaskWoken );
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 /* USER CODE END Application */
