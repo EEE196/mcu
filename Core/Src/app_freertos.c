@@ -96,56 +96,56 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 /* USER CODE END GET_IDLE_TASK_MEMORY */
 
 /**
-  * @brief  FreeRTOS initialization
-  * @param  None
-  * @retval None
-  */
+ * @brief  FreeRTOS initialization
+ * @param  None
+ * @retval None
+ */
 void MX_FREERTOS_Init(void) {
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* USER CODE BEGIN RTOS_MUTEX */
+	/* USER CODE BEGIN RTOS_MUTEX */
 	/* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
+	/* USER CODE END RTOS_MUTEX */
 
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
+	/* USER CODE BEGIN RTOS_SEMAPHORES */
 	/* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
+	/* USER CODE END RTOS_SEMAPHORES */
 
-  /* USER CODE BEGIN RTOS_TIMERS */
+	/* USER CODE BEGIN RTOS_TIMERS */
 	/* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
+	/* USER CODE END RTOS_TIMERS */
 
-  /* USER CODE BEGIN RTOS_QUEUES */
+	/* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
 	xQueueCollate = xQueueCreate( 4, sizeof( xIPStackEvent_t ) );
-  /* USER CODE END RTOS_QUEUES */
+	/* USER CODE END RTOS_QUEUES */
 
-  /* Create the thread(s) */
-  /* definition and creation of PM */
-  osThreadDef(PM, PM_Task, osPriorityNormal, 0, 128);
-  PMHandle = osThreadCreate(osThread(PM), NULL);
+	/* Create the thread(s) */
+	/* definition and creation of PM */
+	osThreadDef(PM, PM_Task, osPriorityNormal, 0, 128);
+	PMHandle = osThreadCreate(osThread(PM), NULL);
 
-  /* definition and creation of CO */
-  osThreadDef(CO, CO_Task, osPriorityNormal, 0, 128);
-  COHandle = osThreadCreate(osThread(CO), NULL);
+	/* definition and creation of CO */
+	osThreadDef(CO, CO_Task, osPriorityNormal, 0, 128);
+	COHandle = osThreadCreate(osThread(CO), NULL);
 
-  /* definition and creation of GPS */
-  osThreadDef(GPS, GPS_Task, osPriorityNormal, 0, 128);
-  GPSHandle = osThreadCreate(osThread(GPS), NULL);
+	/* definition and creation of GPS */
+	osThreadDef(GPS, GPS_Task, osPriorityNormal, 0, 128);
+	GPSHandle = osThreadCreate(osThread(GPS), NULL);
 
-  /* definition and creation of SO */
-  osThreadDef(SO, SO_Task, osPriorityNormal, 0, 128);
-  SOHandle = osThreadCreate(osThread(SO), NULL);
+	/* definition and creation of SO */
+	osThreadDef(SO, SO_Task, osPriorityNormal, 0, 128);
+	SOHandle = osThreadCreate(osThread(SO), NULL);
 
-  /* definition and creation of COLLATE */
-  osThreadDef(COLLATE, COLLATE_Task, osPriorityNormal, 0, 128);
-  COLLATEHandle = osThreadCreate(osThread(COLLATE), NULL);
+	/* definition and creation of COLLATE */
+	osThreadDef(COLLATE, COLLATE_Task, osPriorityNormal, 0, 128);
+	COLLATEHandle = osThreadCreate(osThread(COLLATE), NULL);
 
-  /* USER CODE BEGIN RTOS_THREADS */
+	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
+	/* USER CODE END RTOS_THREADS */
 
 }
 
@@ -158,7 +158,7 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_PM_Task */
 void PM_Task(void const * argument)
 {
-  /* USER CODE BEGIN PM_Task */
+	/* USER CODE BEGIN PM_Task */
 	/* Infinite loop */
 	struct sps30_measurement m;
 	int16_t ret;
@@ -223,7 +223,7 @@ void PM_Task(void const * argument)
 			vTaskSuspend( NULL );
 		}
 	}
-  /* USER CODE END PM_Task */
+	/* USER CODE END PM_Task */
 }
 
 /* USER CODE BEGIN Header_CO_Task */
@@ -235,7 +235,7 @@ void PM_Task(void const * argument)
 /* USER CODE END Header_CO_Task */
 void CO_Task(void const * argument)
 {
-  /* USER CODE BEGIN CO_Task */
+	/* USER CODE BEGIN CO_Task */
 	int16_t err;
 	uint16_t interval_in_seconds = 2;
 
@@ -290,7 +290,7 @@ void CO_Task(void const * argument)
 			vTaskSuspend( NULL );
 		}
 	}
-  /* USER CODE END CO_Task */
+	/* USER CODE END CO_Task */
 }
 
 /* USER CODE BEGIN Header_GPS_Task */
@@ -302,18 +302,21 @@ void CO_Task(void const * argument)
 /* USER CODE END Header_GPS_Task */
 void GPS_Task(void const * argument)
 {
-  /* USER CODE BEGIN GPS_Task */
+	/* USER CODE BEGIN GPS_Task */
 	void* pointer = &GPS;
 	xIPStackEvent_t toQueue = { 0, pointer };
+	const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 200 );
 	GPS_Init();
-	vTaskSuspend( NULL );
+	ulTaskNotifyTake( pdTRUE,
+			xMaxBlockTime );
 	/* Infinite loop */
 	for(;;)
 	{
 		if (rx_data != '\n' && rx_index < sizeof(rx_buffer)) {
 			rx_buffer[rx_index++] = rx_data;
-			HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
-			vTaskSuspend( NULL );
+			GPS_Init();
+			ulTaskNotifyTake( pdTRUE,
+					xMaxBlockTime );
 		} else {
 			GPS_print((char*)rx_buffer);
 			if(GPS_validate((char*) rx_buffer))
@@ -322,11 +325,12 @@ void GPS_Task(void const * argument)
 			memset(rx_buffer, 0, sizeof(rx_buffer));
 			xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
 			vTaskSuspend( NULL );
-			HAL_UART_Receive_IT(GPS_USART, &rx_data, 1);
-			vTaskSuspend( NULL );
+			GPS_Init();
+			ulTaskNotifyTake( pdTRUE,
+					xMaxBlockTime );
 		}
 	}
-  /* USER CODE END GPS_Task */
+	/* USER CODE END GPS_Task */
 }
 
 /* USER CODE BEGIN Header_SO_Task */
@@ -338,7 +342,7 @@ void GPS_Task(void const * argument)
 /* USER CODE END Header_SO_Task */
 void SO_Task(void const * argument)
 {
-  /* USER CODE BEGIN SO_Task */
+	/* USER CODE BEGIN SO_Task */
 	void* pointer = Rx_data;
 	xIPStackEvent_t toQueue = { 3, pointer };
 	SO2_GET_DATA();
@@ -354,32 +358,35 @@ void SO_Task(void const * argument)
 		SO2_GET_DATA();
 		vTaskSuspend( NULL );
 	}
-  /* USER CODE END SO_Task */
+	/* USER CODE END SO_Task */
 }
 
 /* USER CODE BEGIN Header_COLLATE_Task */
 /**
-* @brief Function implementing the COLLATE thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the COLLATE thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_COLLATE_Task */
 void COLLATE_Task(void const * argument)
 {
-  /* USER CODE BEGIN COLLATE_Task */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END COLLATE_Task */
+	/* USER CODE BEGIN COLLATE_Task */
+	/* Infinite loop */
+	for(;;)
+	{
+		osDelay(1);
+	}
+	/* USER CODE END COLLATE_Task */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
 void GPS_UART_CallBack(){
-	vTaskResumeFromISR( GPSHandle );
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	vTaskNotifyGiveFromISR( GPSHandle,
+			&xHigherPriorityTaskWoken );
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 void SO2_UART_CallBack(void)
 {
