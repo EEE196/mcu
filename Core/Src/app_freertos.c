@@ -31,6 +31,7 @@
 #include "../../gps/gps.h"
 #include "../../so2/so2.h"
 #include "../../lora/lora.h"
+#include "app_fatfs.h"
 
 
 
@@ -430,79 +431,110 @@ void COLLATE_Task(void const * argument)
 		}
 		/* USER CODE END COLLATE_Task */
 	}
+}
+/* USER CODE BEGIN Header_LORA_Task */
+/**
+ * @brief Function implementing the LORA thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_LORA_Task */
+void LORA_Task(void const * argument)
+{
+	/* USER CODE BEGIN LORA_Task */
+	LoRa myLoRa;
+	myLoRa = newLoRa();
+	myLoRa.CS_port         = LoRa_CS_GPIO_Port;
+	myLoRa.CS_pin          = LoRa_CS_Pin;
+	myLoRa.reset_port      = LoRa_RST_GPIO_Port;
+	myLoRa.reset_pin       = LoRa_RST_Pin;
+	myLoRa.DIO0_port       = LoRa_DIO0_GPIO_Port;
+	myLoRa.DIO0_pin        = LoRa_DIO0_Pin;
+	myLoRa.hSPIx           = &hspi1;
 
-	/* USER CODE BEGIN Header_LORA_Task */
-	/**
-	 * @brief Function implementing the LORA thread.
-	 * @param argument: Not used
-	 * @retval None
-	 */
-	/* USER CODE END Header_LORA_Task */
-	void LORA_Task(void const * argument)
+	myLoRa.frequency       = 868;
+
+	uint16_t LoRa_status = LoRa_init(&myLoRa);
+	CollatedData xReceivedEvent;
+	/* Infinite loop */
+	for(;;)
 	{
-		/* USER CODE BEGIN LORA_Task */
-		LoRa myLoRa;
-		myLoRa = newLoRa();
-		myLoRa.CS_port         = LoRa_CS_GPIO_Port;
-		myLoRa.CS_pin          = LoRa_CS_Pin;
-		myLoRa.reset_port      = LoRa_RST_GPIO_Port;
-		myLoRa.reset_pin       = LoRa_RST_Pin;
-		myLoRa.DIO0_port       = LoRa_DIO0_GPIO_Port;
-		myLoRa.DIO0_pin        = LoRa_DIO0_Pin;
-		myLoRa.hSPIx           = &hspi1;
-
-		myLoRa.frequency       = 868;
-
-		uint16_t LoRa_status = LoRa_init(&myLoRa);
-		CollatedData xReceivedEvent;
-		/* Infinite loop */
-		for(;;)
+		xQueueReceive( xQueueLORA, &xReceivedEvent, portMAX_DELAY );
+		//FLATTEN
+		void* vptr_test = &xReceivedEvent;
+		uint8_t buffer[sizeof(xReceivedEvent)];
+		memcpy(buffer, vptr_test, sizeof(xReceivedEvent));
+		if (LoRa_status==LORA_OK)
 		{
-			xQueueReceive( xQueueLORA, &xReceivedEvent, portMAX_DELAY );
-			//FLATTEN
-			void* vptr_test = &xReceivedEvent;
-			uint8_t buffer[sizeof(xReceivedEvent)];
-			memcpy(buffer, vptr_test, sizeof(xReceivedEvent));
-			if (LoRa_status==LORA_OK)
-			{
-				LoRa_transmit(&myLoRa, buffer, sizeof(buffer), 100);
-			}
+			LoRa_transmit(&myLoRa, buffer, sizeof(buffer), 100);
 		}
-		/* USER CODE END LORA_Task */
 	}
+	/* USER CODE END LORA_Task */
+}
 
-	/* USER CODE BEGIN Header_SD_Task */
-	/**
-	 * @brief Function implementing the SD thread.
-	 * @param argument: Not used
-	 * @retval None
-	 */
-	/* USER CODE END Header_SD_Task */
-	void SD_Task(void const * argument)
+/* USER CODE BEGIN Header_SD_Task */
+/**
+ * @brief Function implementing the SD thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_SD_Task */
+void SD_Task(void const * argument)
+{
+	/* USER CODE BEGIN SD_Task */
+	CollatedData xReceivedEvent;
+
+	FATFS       FatFs;                //FatFs handle
+	FIL         fil;                  //File handle
+	FRESULT     fres;                 //Result after operations
+
+	fres = f_mount(&FatFs, "", 1);    //1=mount now
+	if (fres != FR_OK)
 	{
-		/* USER CODE BEGIN SD_Task */
-		/* Infinite loop */
-		for(;;)
-		{
-			osDelay(1);
-		}
-		/* USER CODE END SD_Task */
+		printf("No SD Card found : (%i)\r\n", fres);
+		vTaskSuspend( NULL );
 	}
+	printf("SD Card Mounted Successfully!!!\r\n");
+	FATFS *pfs;
+	DWORD fre_clust;
+	uint32_t totalSpace, freeSpace;
 
-	/* Private application code --------------------------------------------------*/
-	/* USER CODE BEGIN Application */
+	f_getfree("", &fre_clust, &pfs);
+	totalSpace = (uint32_t)((pfs->n_fatent - 2) * pfs->csize * 0.5);
+	freeSpace = (uint32_t)(fre_clust * pfs->csize * 0.5);
 
-	void GPS_UART_CallBack(){
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		vTaskNotifyGiveFromISR( GPSHandle,
-				&xHigherPriorityTaskWoken );
-		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-	}
-	void SO2_UART_CallBack(void)
+	printf("TotalSpace : %lu bytes, FreeSpace = %lu bytes\n", totalSpace, freeSpace);
+	fres = f_open(&fil, "data.bin", FA_WRITE | FA_READ | FA_CREATE_ALWAYS);
+	if(fres != FR_OK)
 	{
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		vTaskNotifyGiveFromISR( SOHandle,
-				&xHigherPriorityTaskWoken );
-		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+		printf("SD CARD OK");
 	}
-	/* USER CODE END Application */
+	/* Infinite loop */
+	for(;;)
+	{
+		xQueueReceive( xQueueLORA, &xReceivedEvent, portMAX_DELAY );
+		void* vptr_test = &xReceivedEvent;
+		uint8_t buffer[sizeof(xReceivedEvent)];
+		memcpy(buffer, vptr_test, sizeof(xReceivedEvent));
+		f_write(&fil, buffer, sizeof(buffer), NULL);
+	}
+	/* USER CODE END SD_Task */
+}
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+
+void GPS_UART_CallBack(){
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	vTaskNotifyGiveFromISR( GPSHandle,
+			&xHigherPriorityTaskWoken );
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+void SO2_UART_CallBack(void)
+{
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	vTaskNotifyGiveFromISR( SOHandle,
+			&xHigherPriorityTaskWoken );
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+/* USER CODE END Application */
