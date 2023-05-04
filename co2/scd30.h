@@ -39,6 +39,12 @@
 extern "C" {
 #endif
 
+typedef struct {
+		float co2_ppm;
+		float temperature;
+		float relative_humidity;
+	} CO_t;
+
 /**
  * scd30_probe() - check if the SCD sensor is available and initialize it
  *

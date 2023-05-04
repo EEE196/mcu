@@ -13,10 +13,16 @@
 #include "stdio.h"
 #define DEBUG 1
 #define SO2_USART &hlpuart1
+typedef struct{
+	float temp;
+	float rh;
+	uint32_t SO_ppb;
+} SO_t;
 extern uint8_t Rx_data[13];
 extern uint8_t Tx_data[9];
 void SO2_GET_DATA(void);
 void SO2_UART_CallBack(void);
+void SO2_PARSE(char* data);
 
 
 

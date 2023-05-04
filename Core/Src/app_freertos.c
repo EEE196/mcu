@@ -63,7 +63,7 @@ typedef struct DATA
 	GPS_t GPS_Data;
 	SO_t SO_Data;
 	struct sps30_measurement PM_Data;
-	struct Data CO_Data;
+	CO_t CO_Data;
 } CollatedData;
 
 QueueHandle_t xQueueCollate;
@@ -250,13 +250,7 @@ void CO_Task(void const * argument)
 	/* USER CODE BEGIN CO_Task */
 	int16_t err;
 	uint16_t interval_in_seconds = 2;
-
-	struct Data {
-		float co2_ppm;
-		float temperature;
-		float relative_humidity;
-	} data;
-
+	CO_t data;
 	void* pointer = &data;
 	xIPStackEvent_t toQueue = { 2, pointer };
 	/* Busy loop for initialization, because the main loop does not work without
@@ -355,7 +349,8 @@ void GPS_Task(void const * argument)
 void SO_Task(void const * argument)
 {
 	/* USER CODE BEGIN SO_Task */
-	void* pointer = Rx_data;
+	SO_t data;
+	void* pointer = &data;
 	xIPStackEvent_t toQueue = { 3, pointer };
 	const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 200 );
 	/* Infinite loop */
@@ -367,6 +362,7 @@ void SO_Task(void const * argument)
 		for(int i=0; i<13; i++) {
 			printf("%d/n", Rx_data[i]);
 		}
+		SO2_PARSE(pointer);
 		xQueueSend( xQueueCollate, ( void* ) &toQueue, ( TickType_t ) 10);
 		vTaskSuspend( NULL );
 	}
@@ -394,19 +390,24 @@ void COLLATE_Task(void const * argument)
 		switch( xReceivedEvent.from_Task )
 		{
 		case 0:
-			collatedData.GPS_Data = *xReceivedEvent.pvData;
+		{
+			collatedData.GPS_Data = *(GPS_t*)xReceivedEvent.pvData;
+			break;
 		}
 		case 1:
 		{
-			collatedData.PM_Data = *xReceivedEvent.pvData;
+			collatedData.PM_Data = *(struct sps30_measurement*)xReceivedEvent.pvData;
+			break;
 		}
 		case 2:
 		{
-			collatedData.CO_Data = *xReceivedEvent.pvData;
+			collatedData.CO_Data = *(CO_t*)xReceivedEvent.pvData;
+			break;
 		}
 		case 3:
 		{
-			collatedData.SO_Data = *xReceivedEvent.pvData;
+			collatedData.SO_Data = *(SO_t*)xReceivedEvent.pvData;
+			break;
 		}
 		counter++;
 		if (counter == 4)
@@ -418,11 +419,12 @@ void COLLATE_Task(void const * argument)
 			vTaskResume( PMHandle );
 			vTaskResume( COHandle );
 			vTaskResume( GPSHandle );
-			vTaskReume( SOHandle );
+			vTaskResume( SOHandle );
 		}
 
+		}
+		/* USER CODE END COLLATE_Task */
 	}
-	/* USER CODE END COLLATE_Task */
 }
 
 /* Private application code --------------------------------------------------*/

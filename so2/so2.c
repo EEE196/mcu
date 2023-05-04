@@ -14,3 +14,8 @@ void SO2_GET_DATA(void)
 {
 	HAL_UART_Transmit_IT(&hlpuart1, Tx_data, 9);
 }
+
+void SO2_PARSE(char* data)
+{
+	return; //fix in the future
+}
