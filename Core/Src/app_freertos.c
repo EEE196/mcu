@@ -58,7 +58,17 @@ typedef struct IP_TASK_COMMANDS
 
 } xIPStackEvent_t;
 
+typedef struct DATA
+{
+	GPS_t GPS_Data;
+	SO_t SO_Data;
+	struct sps30_measurement PM_Data;
+	struct Data CO_Data;
+} CollatedData;
+
 QueueHandle_t xQueueCollate;
+QueueHandle_t xQueueSD;
+QueueHandle_t xQueueLORA;
 /* USER CODE END Variables */
 osThreadId PMHandle;
 osThreadId COHandle;
@@ -120,6 +130,8 @@ void MX_FREERTOS_Init(void) {
 	/* USER CODE BEGIN RTOS_QUEUES */
 	/* add queues, ... */
 	xQueueCollate = xQueueCreate( 4, sizeof( xIPStackEvent_t ) );
+	xQueueSD = xQueueCreate( 10, sizeof( CollatedData ) );
+	xQueueLORA = xQueueCreate( 10, sizeof( CollatedData ) );
 	/* USER CODE END RTOS_QUEUES */
 
 	/* Create the thread(s) */
@@ -140,7 +152,7 @@ void MX_FREERTOS_Init(void) {
 	SOHandle = osThreadCreate(osThread(SO), NULL);
 
 	/* definition and creation of COLLATE */
-	osThreadDef(COLLATE, COLLATE_Task, osPriorityNormal, 0, 128);
+	osThreadDef(COLLATE, COLLATE_Task, osPriorityBelowNormal, 0, 128);
 	COLLATEHandle = osThreadCreate(osThread(COLLATE), NULL);
 
 	/* USER CODE BEGIN RTOS_THREADS */
@@ -371,10 +383,44 @@ void SO_Task(void const * argument)
 void COLLATE_Task(void const * argument)
 {
 	/* USER CODE BEGIN COLLATE_Task */
+	uint8_t counter = 0;
+	CollatedData collatedData;
+	xIPStackEvent_t xReceivedEvent;
+
 	/* Infinite loop */
 	for(;;)
 	{
-		osDelay(1);
+		xQueueReceive( xQueueCollate, &xReceivedEvent, portMAX_DELAY );
+		switch( xReceivedEvent.from_Task )
+		{
+		case 0:
+			collatedData.GPS_Data = *xReceivedEvent.pvData;
+		}
+		case 1:
+		{
+			collatedData.PM_Data = *xReceivedEvent.pvData;
+		}
+		case 2:
+		{
+			collatedData.CO_Data = *xReceivedEvent.pvData;
+		}
+		case 3:
+		{
+			collatedData.SO_Data = *xReceivedEvent.pvData;
+		}
+		counter++;
+		if (counter == 4)
+		{
+			xQueueSend( xQueueSD, ( void* ) &collatedData, ( TickType_t ) 10);
+			xQueueSend( xQueueLORA, ( void* ) &collatedData, ( TickType_t ) 10);
+			counter = 0;
+			osDelay(2000);
+			vTaskResume( PMHandle );
+			vTaskResume( COHandle );
+			vTaskResume( GPSHandle );
+			vTaskReume( SOHandle );
+		}
+
 	}
 	/* USER CODE END COLLATE_Task */
 }
