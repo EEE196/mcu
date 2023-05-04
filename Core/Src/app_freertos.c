@@ -30,6 +30,8 @@
 #include "../../co2/scd30.h"
 #include "../../gps/gps.h"
 #include "../../so2/so2.h"
+#include "../../lora/lora.h"
+
 
 
 /* USER CODE END Includes */
@@ -75,6 +77,7 @@ osThreadId COHandle;
 osThreadId GPSHandle;
 osThreadId SOHandle;
 osThreadId COLLATEHandle;
+osThreadId LORAHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -86,6 +89,7 @@ void CO_Task(void const * argument);
 void GPS_Task(void const * argument);
 void SO_Task(void const * argument);
 void COLLATE_Task(void const * argument);
+void LORA_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -154,6 +158,10 @@ void MX_FREERTOS_Init(void) {
 	/* definition and creation of COLLATE */
 	osThreadDef(COLLATE, COLLATE_Task, osPriorityBelowNormal, 0, 128);
 	COLLATEHandle = osThreadCreate(osThread(COLLATE), NULL);
+
+	/* definition and creation of LORA */
+	osThreadDef(LORA, LORA_Task, osPriorityIdle, 0, 128);
+	LORAHandle = osThreadCreate(osThread(LORA), NULL);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -390,22 +398,15 @@ void COLLATE_Task(void const * argument)
 		switch( xReceivedEvent.from_Task )
 		{
 		case 0:
-		{
 			collatedData.GPS_Data = *(GPS_t*)xReceivedEvent.pvData;
 			break;
-		}
 		case 1:
-		{
 			collatedData.PM_Data = *(struct sps30_measurement*)xReceivedEvent.pvData;
 			break;
-		}
 		case 2:
-		{
 			collatedData.CO_Data = *(CO_t*)xReceivedEvent.pvData;
 			break;
-		}
 		case 3:
-		{
 			collatedData.SO_Data = *(SO_t*)xReceivedEvent.pvData;
 			break;
 		}
@@ -421,10 +422,47 @@ void COLLATE_Task(void const * argument)
 			vTaskResume( GPSHandle );
 			vTaskResume( SOHandle );
 		}
-
-		}
 		/* USER CODE END COLLATE_Task */
 	}
+}
+/* USER CODE BEGIN Header_LORA_Task */
+/**
+ * @brief Function implementing the LORA thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_LORA_Task */
+void LORA_Task(void const * argument)
+{
+	/* USER CODE BEGIN LORA_Task */
+	LoRa myLoRa;
+	myLoRa = newLoRa();
+	myLoRa.CS_port         = LoRa_CS_GPIO_Port;
+	myLoRa.CS_pin          = LoRa_CS_Pin;
+	myLoRa.reset_port      = LoRa_RST_GPIO_Port;
+	myLoRa.reset_pin       = LoRa_RST_Pin;
+	myLoRa.DIO0_port       = LoRa_DIO0_GPIO_Port;
+	myLoRa.DIO0_pin        = LoRa_DIO0_Pin;
+	myLoRa.hSPIx           = &hspi1;
+
+	myLoRa.frequency       = 868;
+
+	uint16_t LoRa_status = LoRa_init(&myLoRa);
+	CollatedData xReceivedEvent;
+	/* Infinite loop */
+	for(;;)
+	{
+		xQueueReceive( xQueueLORA, &xReceivedEvent, portMAX_DELAY );
+		//FLATTEN
+		void* vptr_test = &xReceivedEvent;
+		uint8_t buffer[sizeof(xReceivedEvent)];
+		memcpy(buffer, vptr_test, sizeof(xReceivedEvent));
+		if (LoRa_status==LORA_OK)
+		{
+			LoRa_transmit(&myLoRa, buffer, sizeof(buffer), 100);
+		}
+	}
+	/* USER CODE END LORA_Task */
 }
 
 /* Private application code --------------------------------------------------*/

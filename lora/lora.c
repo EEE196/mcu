@@ -41,9 +41,9 @@ LoRa newLoRa(){
 \* ----------------------------------------------------------------------------- */
 void LoRa_reset(LoRa* _LoRa){
 	HAL_GPIO_WritePin(_LoRa->reset_port, _LoRa->reset_pin, GPIO_PIN_RESET);
-	HAL_Delay(1);
+	osDelay(1);
 	HAL_GPIO_WritePin(_LoRa->reset_port, _LoRa->reset_pin, GPIO_PIN_SET);
-	HAL_Delay(100);
+	osDelay(100);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -82,7 +82,7 @@ void LoRa_gotoMode(LoRa* _LoRa, int mode){
 	}
 
 	LoRa_write(_LoRa, RegOpMode, data);
-	//HAL_Delay(10);
+	//osDelay(10);
 }
 
 
@@ -157,17 +157,17 @@ void LoRa_setFrequency(LoRa* _LoRa, int freq){
 	// write Msb:
 	data = F >> 16;
 	LoRa_write(_LoRa, RegFrMsb, data);
-	HAL_Delay(5);
+	osDelay(5);
 
 	// write Mid:
 	data = F >> 8;
 	LoRa_write(_LoRa, RegFrMid, data);
-	HAL_Delay(5);
+	osDelay(5);
 
 	// write Lsb:
 	data = F >> 0;
 	LoRa_write(_LoRa, RegFrLsb, data);
-	HAL_Delay(5);
+	osDelay(5);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -191,11 +191,11 @@ void LoRa_setSpreadingFactor(LoRa* _LoRa, int SF){
 		SF = 7;
 
 	read = LoRa_read(_LoRa, RegModemConfig2);
-	HAL_Delay(10);
+	osDelay(10);
 
 	data = (SF << 4) + (read & 0x0F);
 	LoRa_write(_LoRa, RegModemConfig2, data);
-	HAL_Delay(10);
+	osDelay(10);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -211,7 +211,7 @@ void LoRa_setSpreadingFactor(LoRa* _LoRa, int SF){
 \* ----------------------------------------------------------------------------- */
 void LoRa_setPower(LoRa* _LoRa, uint8_t power){
 	LoRa_write(_LoRa, RegPaConfig, power);
-	HAL_Delay(10);
+	osDelay(10);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -240,7 +240,7 @@ void LoRa_setOCP(LoRa* _LoRa, uint8_t current){
 
 	OcpTrim = OcpTrim + (1 << 5);
 	LoRa_write(_LoRa, RegOcp, OcpTrim);
-	HAL_Delay(10);
+	osDelay(10);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -260,7 +260,7 @@ void LoRa_setTOMsb_setCRCon(LoRa* _LoRa){
 
 	data = read | 0x07;
 	LoRa_write(_LoRa, RegModemConfig2, data);\
-	HAL_Delay(10);
+	osDelay(10);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -280,7 +280,7 @@ uint8_t LoRa_read(LoRa* _LoRa, uint8_t address){
 
 	data_addr = address & 0x7F;
 	LoRa_readReg(_LoRa, &data_addr, 1, &read_data, 1);
-	//HAL_Delay(5);
+	//osDelay(5);
 
 	return read_data;
 }
@@ -304,7 +304,7 @@ void LoRa_write(LoRa* _LoRa, uint8_t address, uint8_t value){
 	addr = address | 0x80;
 	data = value;
 	LoRa_writeReg(_LoRa, &addr, 1, &data, 1);
-	//HAL_Delay(5);
+	//osDelay(5);
 }
 
 /* ----------------------------------------------------------------------------- *\
@@ -334,7 +334,7 @@ void LoRa_BurstWrite(LoRa* _LoRa, uint8_t address, uint8_t *value, uint8_t lengt
 	while (HAL_SPI_GetState(_LoRa->hSPIx) != HAL_SPI_STATE_READY)
 		;
 	//NSS = 0
-	//HAL_Delay(5);
+	//osDelay(5);
 	HAL_GPIO_WritePin(_LoRa->CS_port, _LoRa->CS_pin, GPIO_PIN_SET);
 }
 /* ----------------------------------------------------------------------------- *\
@@ -387,7 +387,7 @@ uint8_t LoRa_transmit(LoRa* _LoRa, uint8_t* data, uint8_t length, uint16_t timeo
 				return 0;
 			}
 		}
-		HAL_Delay(1);
+		osDelay(1);
 	}
 
 }
@@ -474,14 +474,14 @@ uint16_t LoRa_init(LoRa* _LoRa){
 	if(LoRa_isvalid(_LoRa)){
 		// goto sleep mode:
 			LoRa_gotoMode(_LoRa, SLEEP_MODE);
-			HAL_Delay(10);
+			osDelay(10);
 
 		// turn on lora mode:
 			read = LoRa_read(_LoRa, RegOpMode);
-			HAL_Delay(10);
+			osDelay(10);
 			data = read | 0x80;
 			LoRa_write(_LoRa, RegOpMode, data);
-			HAL_Delay(100);
+			osDelay(100);
 
 		// set frequency:
 			LoRa_setFrequency(_LoRa, _LoRa->frequency);
@@ -521,7 +521,7 @@ uint16_t LoRa_init(LoRa* _LoRa){
 		// goto standby mode:
 			LoRa_gotoMode(_LoRa, STNBY_MODE);
 			_LoRa->current_mode = STNBY_MODE;
-			HAL_Delay(10);
+			osDelay(10);
 
 			read = LoRa_read(_LoRa, RegVersion);
 			if(read == 0x12)
