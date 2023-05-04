@@ -78,6 +78,7 @@ osThreadId GPSHandle;
 osThreadId SOHandle;
 osThreadId COLLATEHandle;
 osThreadId LORAHandle;
+osThreadId SDHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -90,6 +91,7 @@ void GPS_Task(void const * argument);
 void SO_Task(void const * argument);
 void COLLATE_Task(void const * argument);
 void LORA_Task(void const * argument);
+void SD_Task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -160,8 +162,12 @@ void MX_FREERTOS_Init(void) {
 	COLLATEHandle = osThreadCreate(osThread(COLLATE), NULL);
 
 	/* definition and creation of LORA */
-	osThreadDef(LORA, LORA_Task, osPriorityIdle, 0, 128);
+	osThreadDef(LORA, LORA_Task, osPriorityBelowNormal, 0, 128);
 	LORAHandle = osThreadCreate(osThread(LORA), NULL);
+
+	/* definition and creation of SD */
+	osThreadDef(SD, SD_Task, osPriorityNormal, 0, 128);
+	SDHandle = osThreadCreate(osThread(SD), NULL);
 
 	/* USER CODE BEGIN RTOS_THREADS */
 	/* add threads, ... */
@@ -424,61 +430,79 @@ void COLLATE_Task(void const * argument)
 		}
 		/* USER CODE END COLLATE_Task */
 	}
-}
-/* USER CODE BEGIN Header_LORA_Task */
-/**
- * @brief Function implementing the LORA thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_LORA_Task */
-void LORA_Task(void const * argument)
-{
-	/* USER CODE BEGIN LORA_Task */
-	LoRa myLoRa;
-	myLoRa = newLoRa();
-	myLoRa.CS_port         = LoRa_CS_GPIO_Port;
-	myLoRa.CS_pin          = LoRa_CS_Pin;
-	myLoRa.reset_port      = LoRa_RST_GPIO_Port;
-	myLoRa.reset_pin       = LoRa_RST_Pin;
-	myLoRa.DIO0_port       = LoRa_DIO0_GPIO_Port;
-	myLoRa.DIO0_pin        = LoRa_DIO0_Pin;
-	myLoRa.hSPIx           = &hspi1;
 
-	myLoRa.frequency       = 868;
-
-	uint16_t LoRa_status = LoRa_init(&myLoRa);
-	CollatedData xReceivedEvent;
-	/* Infinite loop */
-	for(;;)
+	/* USER CODE BEGIN Header_LORA_Task */
+	/**
+	 * @brief Function implementing the LORA thread.
+	 * @param argument: Not used
+	 * @retval None
+	 */
+	/* USER CODE END Header_LORA_Task */
+	void LORA_Task(void const * argument)
 	{
-		xQueueReceive( xQueueLORA, &xReceivedEvent, portMAX_DELAY );
-		//FLATTEN
-		void* vptr_test = &xReceivedEvent;
-		uint8_t buffer[sizeof(xReceivedEvent)];
-		memcpy(buffer, vptr_test, sizeof(xReceivedEvent));
-		if (LoRa_status==LORA_OK)
+		/* USER CODE BEGIN LORA_Task */
+		LoRa myLoRa;
+		myLoRa = newLoRa();
+		myLoRa.CS_port         = LoRa_CS_GPIO_Port;
+		myLoRa.CS_pin          = LoRa_CS_Pin;
+		myLoRa.reset_port      = LoRa_RST_GPIO_Port;
+		myLoRa.reset_pin       = LoRa_RST_Pin;
+		myLoRa.DIO0_port       = LoRa_DIO0_GPIO_Port;
+		myLoRa.DIO0_pin        = LoRa_DIO0_Pin;
+		myLoRa.hSPIx           = &hspi1;
+
+		myLoRa.frequency       = 868;
+
+		uint16_t LoRa_status = LoRa_init(&myLoRa);
+		CollatedData xReceivedEvent;
+		/* Infinite loop */
+		for(;;)
 		{
-			LoRa_transmit(&myLoRa, buffer, sizeof(buffer), 100);
+			xQueueReceive( xQueueLORA, &xReceivedEvent, portMAX_DELAY );
+			//FLATTEN
+			void* vptr_test = &xReceivedEvent;
+			uint8_t buffer[sizeof(xReceivedEvent)];
+			memcpy(buffer, vptr_test, sizeof(xReceivedEvent));
+			if (LoRa_status==LORA_OK)
+			{
+				LoRa_transmit(&myLoRa, buffer, sizeof(buffer), 100);
+			}
 		}
+		/* USER CODE END LORA_Task */
 	}
-	/* USER CODE END LORA_Task */
-}
 
-/* Private application code --------------------------------------------------*/
-/* USER CODE BEGIN Application */
+	/* USER CODE BEGIN Header_SD_Task */
+	/**
+	 * @brief Function implementing the SD thread.
+	 * @param argument: Not used
+	 * @retval None
+	 */
+	/* USER CODE END Header_SD_Task */
+	void SD_Task(void const * argument)
+	{
+		/* USER CODE BEGIN SD_Task */
+		/* Infinite loop */
+		for(;;)
+		{
+			osDelay(1);
+		}
+		/* USER CODE END SD_Task */
+	}
 
-void GPS_UART_CallBack(){
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR( GPSHandle,
-			&xHigherPriorityTaskWoken );
-	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-void SO2_UART_CallBack(void)
-{
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	vTaskNotifyGiveFromISR( SOHandle,
-			&xHigherPriorityTaskWoken );
-	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-/* USER CODE END Application */
+	/* Private application code --------------------------------------------------*/
+	/* USER CODE BEGIN Application */
+
+	void GPS_UART_CallBack(){
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( GPSHandle,
+				&xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+	}
+	void SO2_UART_CallBack(void)
+	{
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( SOHandle,
+				&xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+	}
+	/* USER CODE END Application */
